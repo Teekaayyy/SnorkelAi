@@ -6,5 +6,6 @@ montage \
     /app/output/watermarked/image_2.png \
     /app/output/watermarked/image_3.png \
     -tile 3x1 \
-    -geometry 800x600+5+5 \
+    -geometry +5+5 \
+    -background white \
     /app/output/contact_sheet.png
