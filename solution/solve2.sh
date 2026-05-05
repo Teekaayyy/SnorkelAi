@@ -1,4 +1,12 @@
 #!/bin/bash
-# Oracle solution for milestone 2 (runs after solve1.sh).
-# Add milestone 2 deliverables here; test_m2 currently has placeholder assertions.
-touch /app/milestone2_done.txt
+# Oracle solution for milestone 2: apply IMAGES_YES watermark.
+mkdir -p /app/output/watermarked
+for img in /app/output/resized/image_1.png /app/output/resized/image_2.png /app/output/resized/image_3.png; do
+    filename=$(basename "$img")
+    convert "$img" \
+        -gravity Center \
+        -pointsize 48 \
+        -fill "rgba(255,255,255,0.6)" \
+        -annotate 0 "IMAGES_YES" \
+        /app/output/watermarked/"$filename"
+done

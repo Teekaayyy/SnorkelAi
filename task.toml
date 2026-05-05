@@ -8,18 +8,18 @@ author_email = "anonymous"
 difficulty = "unknown"
 category = "software-engineering"
 # Options for subcategories are: "long_context", "tool_specific", "api_integration", "db_interaction", "ui_building"
-subcategories = [ ]
+subcategories = [ "tool_specific" ]
 # The number of milestones in the task
-number_of_milestones = 2
+number_of_milestones = 3
 # Size of the codebase: minimal -> 0-20 files, small -> 20+ files, large -> 200+ files
 codebase_size = "minimal"
 # Coding languages used in the oracle solution or required by the agent
-languages = [ "bash" ]
+languages = [ "python", "bash" ]
 # For tool_specific, api_integration, and db_interaction subcategories, please include specific tool, api framework, or database software
-tags = [ "file-operations",]
+tags = [ "imagemagick", "image-processing", "subprocess", "pipeline", "watermark" ]
 # Estimated time to complete (minutes)
-expert_time_estimate_min = 60
-junior_time_estimate_min = 120
+expert_time_estimate_min = 30
+junior_time_estimate_min = 60
 
 # Verifier: runs the test script to check task completion
 [verifier]
@@ -32,6 +32,6 @@ timeout_sec = 900.0
 # Sandbox environment limits
 [environment]
 build_timeout_sec = 600.0
-cpus = 2
+cpus = 1
 memory_mb = 4096
 storage_mb = 10240
