@@ -6,6 +6,7 @@ for img in /app/output/resized/image_1.png /app/output/resized/image_2.png /app/
     convert "$img" \
         -gravity Center \
         -pointsize 48 \
+        -font /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf \
         -fill "white" \
         -undercolor "rgba(0,0,0,0.3)" \
         -annotate 0 "IMAGES_YES" \
