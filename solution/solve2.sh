@@ -6,8 +6,8 @@ for img in /app/output/resized/image_1.png /app/output/resized/image_2.png /app/
     convert "$img" \
         -gravity Center \
         -pointsize 48 \
-        -font DejaVu-Sans \
-        -fill "rgba(255,255,255,0.6)" \
+        -fill "white" \
+        -undercolor "rgba(0,0,0,0.3)" \
         -annotate 0 "IMAGES_YES" \
         /app/output/watermarked/"$filename"
 done
