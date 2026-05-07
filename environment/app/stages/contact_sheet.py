@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from config.settings import (
+    CONTACT_SHEET_COLUMNS,
     CONTACT_SHEET_GEOMETRY,
     CONTACT_SHEET_BACKGROUND,
 )
@@ -17,10 +18,10 @@ def run_contact_sheet(images: list[Path], output_path: Path) -> None:
     if not images:
         raise ValueError("No images provided for contact sheet generation")
 
-    tile = "1x"
+    tile = f"{CONTACT_SHEET_COLUMNS}x"
 
     cmd = (
-        ["montage"]
+        ["montage", str(output_path)]
         + [str(img) for img in images]
         + [
             "-tile", tile,

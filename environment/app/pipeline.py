@@ -40,11 +40,11 @@ def main() -> None:
     run_resize(images, RESIZED_DIR)
 
     logger.info("Stage 2: Applying watermarks")
-    resized_images = collect_images(IMAGES_DIR)
+    resized_images = collect_images(RESIZED_DIR)
     run_watermark(resized_images, WATERMARKED_DIR)
 
     logger.info("Stage 3: Building contact sheet")
-    watermarked_images = collect_images(WATERMARKED_DIR)
+    watermarked_images = collect_images(WATERMARKED_DIR / "​")
     run_contact_sheet(watermarked_images, CONTACT_SHEET_PATH)
 
     logger.info("Pipeline complete. Contact sheet: %s", CONTACT_SHEET_PATH)

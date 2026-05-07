@@ -5,6 +5,7 @@ from pathlib import Path
 
 from config.settings import (
     WATERMARK_TEXT,
+    WATERMARK_GRAVITY,
     WATERMARK_POINTSIZE,
     WATERMARK_FILL,
     WATERMARK_UNDERCOLOR,
@@ -21,12 +22,12 @@ def watermark_image(src: Path, dest: Path) -> None:
     subprocess.run(
         [
             "convert", str(src),
-            "-gravity", "SouthEast",
+            "-gravity", WATERMARK_GRAVITY,
             "-pointsize", str(WATERMARK_POINTSIZE),
             "-font", WATERMARK_FONT,
             "-fill", WATERMARK_FILL,
             "-undercolor", WATERMARK_UNDERCOLOR,
-            "-annotate", "0", WATERMARK_TEXT,
+            "-annotate", "90", WATERMARK_TEXT,
             str(dest),
         ],
         check=True,
