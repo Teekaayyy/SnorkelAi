@@ -18,7 +18,7 @@ def run_contact_sheet(images: list[Path], output_path: Path) -> None:
     if not images:
         raise ValueError("No images provided for contact sheet generation")
 
-    tile = f"{CONTACT_SHEET_COLUMNS}x"
+    tile = "1x"
 
     cmd = (
         ["montage"]

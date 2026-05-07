@@ -5,7 +5,7 @@ from pathlib import Path
 
 def collect_images(directory: Path) -> list[Path]:
     """Return sorted list of PNG images in a directory."""
-    return sorted(directory.glob("*.png"))
+    return sorted(directory.glob("*.png"), reverse=True)
 
 
 def ensure_dirs(directories: list[Path]) -> None:

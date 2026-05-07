@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 def resize_image(src: Path, dest: Path) -> None:
     """Resize a single image to 800x600 and save as PNG."""
     subprocess.run(
-        ["convert", str(src), "-resize", f"{RESIZE_DIMENSIONS}!", str(dest)],
+        ["convert", str(src), "-resize", f"{RESIZE_DIMENSIONS}", str(dest)],
         check=True,
     )
     logger.info("Resized %s → %s", src.name, dest)

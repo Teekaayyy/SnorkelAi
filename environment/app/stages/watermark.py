@@ -22,7 +22,7 @@ def watermark_image(src: Path, dest: Path) -> None:
     subprocess.run(
         [
             "convert", str(src),
-            "-gravity", WATERMARK_GRAVITY,
+            "-gravity", "SouthEast",
             "-pointsize", str(WATERMARK_POINTSIZE),
             "-font", WATERMARK_FONT,
             "-fill", WATERMARK_FILL,

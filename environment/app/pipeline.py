@@ -41,7 +41,7 @@ def main() -> None:
     run_resize(images, RESIZED_DIR)
 
     logger.info("Stage 2: Applying watermarks")
-    resized_images = collect_images(RESIZED_DIR)
+    resized_images = collect_images(IMAGES_DIR)
     run_watermark(resized_images, WATERMARKED_DIR)
 
     logger.info("Stage 3: Building contact sheet")
