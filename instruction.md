@@ -1,5 +1,3 @@
-There are 3 images in /app/images/ (image_1.png, image_2.png, image_3.png). Write a python pipeline at /app/pipeline.py that processes them in 3 stages.
+We have a Python pipeline at /app/pipeline.py whose job is to process the images from /app/images/ in groups. The pipeline is meant to resize each image to exactly 800x600 and then save to /app/output/resized/, place an "IMAGES_YES" watermark in the center of each resized image and save to /app/output/watermarked/, then lastly, combine all watermarked images into a contact sheet with 3 columns at /app/output/contact_sheet.png. The output file names should remain the same as the originals.
 
-First, resize each image to 800x600 and save the results as PNGs to /app/output/resized/. Second, stamp the text "IMAGES_YES" as a watermark on each resized image and write those to /app/output/watermarked/. Third, combine all the watermarked images into a single contact sheet (3 columns) and save it to /app/output/contact_sheet.png.
-
-Use ImageMagick under the hood via subprocess. Output filenames should match the originals.
+The pipeline is broken and does not produce the correct outputs. It runs without errors but the outputs are wrong. Fix the bugs across the codebase.
