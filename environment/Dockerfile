@@ -12,3 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p /app/images /app/output/resized /app/output/watermarked
 
 COPY images/ /app/images/
+COPY app/ /app/
+
+ENV PYTHONPATH=/app

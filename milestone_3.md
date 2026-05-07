@@ -1,1 +1,0 @@
-Combine all the watermarked images from /app/output/watermarked/ into a single contact sheet (3 columns) and save it to /app/output/contact_sheet.png.
