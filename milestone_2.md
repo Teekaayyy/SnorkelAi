@@ -1,0 +1,1 @@
+Stamp the text "IMAGES_YES" as a watermark on each resized image from /app/output/resized/ and write those to /app/output/watermarked/. Output filenames should match the originals.
