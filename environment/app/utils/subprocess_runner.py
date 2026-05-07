@@ -1,7 +1,6 @@
 """Subprocess execution wrapper with consistent error handling."""
 
 import subprocess
-from pathlib import Path
 from utils.logger import get_logger
 
 logger = get_logger(__name__)

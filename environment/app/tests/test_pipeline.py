@@ -3,8 +3,6 @@
 import subprocess
 from pathlib import Path
 
-import pytest
-
 
 IMAGES_DIR = Path("/app/images")
 RESIZED_DIR = Path("/app/output/resized")

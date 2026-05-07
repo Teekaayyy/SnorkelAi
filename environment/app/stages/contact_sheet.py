@@ -4,7 +4,6 @@ import subprocess
 from pathlib import Path
 
 from config.settings import (
-    CONTACT_SHEET_COLUMNS,
     CONTACT_SHEET_GEOMETRY,
     CONTACT_SHEET_BACKGROUND,
 )

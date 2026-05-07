@@ -5,7 +5,6 @@ from pathlib import Path
 
 from config.settings import (
     WATERMARK_TEXT,
-    WATERMARK_GRAVITY,
     WATERMARK_POINTSIZE,
     WATERMARK_FILL,
     WATERMARK_UNDERCOLOR,

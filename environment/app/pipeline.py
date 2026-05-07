@@ -8,7 +8,6 @@ Stages:
 """
 
 import sys
-from pathlib import Path
 
 from stages.resize import run_resize
 from stages.watermark import run_watermark
