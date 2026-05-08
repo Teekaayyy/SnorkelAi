@@ -20,7 +20,7 @@ src = open(path, encoding='utf-8').read()
 import re
 src = re.sub(
     r'WATERMARK_TEXT = "IMAGES[^"]*YES"',
-    'WATERMARK_TEXT = "IMAGES_YES"',
+    'WATERMARK_TEXT = "IMAGES-YES"',
     src
 )
 open(path, 'w', encoding='utf-8').write(src)

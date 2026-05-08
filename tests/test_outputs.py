@@ -89,11 +89,11 @@ def test_watermarked_differs_from_resized() -> None:
 
 
 def test_watermark_text_correct_via_ocr() -> None:
-    """Verify the exact text IMAGES_YES appears in each watermarked image.
+    """Verify the exact text IMAGES-YES appears in each watermarked image.
 
-    Preprocesses each image before OCR to handle white text on colored
-    backgrounds. Catches hidden character substitutions such as zero-width
-    spaces that are invisible in source code but alter the stamped text.
+    Preprocesses each image before OCR. Catches hidden character substitutions
+    such as zero-width spaces that are invisible in source code but alter the
+    stamped text, causing OCR to read incorrect output like 'IMAGES -YES'.
     """
     for name in IMAGES:
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
@@ -112,8 +112,8 @@ def test_watermark_text_correct_via_ocr() -> None:
         )
         Path(tmp_path).unlink(missing_ok=True)
         ocr_text = result.stdout.strip().replace("\n", " ")
-        assert "IMAGES_YES" in ocr_text, (
-            f"{name}: OCR output '{ocr_text}' does not contain 'IMAGES_YES' — "
+        assert "IMAGES-YES" in ocr_text, (
+            f"{name}: OCR output '{ocr_text}' does not contain 'IMAGES-YES' — "
             "watermark text may contain hidden characters or be rendered incorrectly"
         )
 
@@ -170,8 +170,8 @@ def test_contact_sheet_is_3_columns() -> None:
 
     Three 800px-wide images with +5+5 geometry produce ~2410-2430px width.
     Asserting >= 2400 rules out 1-column (~810px) and 2-column (~1620px) layouts.
-    An incorrect resize dimension cascades here: 3 x 600px tiles produce
-    ~1830px which also fails this check.
+    An incorrect resize dimension also fails here: 3 x 600px tiles produce
+    ~1830px which is below the threshold.
     """
     result = subprocess.run(
         ["identify", "-format", "%w", str(CONTACT_SHEET)],
@@ -194,10 +194,11 @@ def test_contact_sheet_not_empty() -> None:
 
 
 def test_contact_sheet_panels_contain_watermark() -> None:
-    """Verify the contact sheet panels contain the IMAGES_YES watermark.
+    """Verify the contact sheet panels contain the IMAGES-YES watermark.
 
     Crops the center panel and runs OCR. Catches cases where the contact
-    sheet is assembled from the wrong source images.
+    sheet is assembled from the wrong source images such as the unprocessed
+    resized images rather than the watermarked ones.
     """
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
         panel_path = tmp.name
@@ -219,8 +220,8 @@ def test_contact_sheet_panels_contain_watermark() -> None:
     Path(panel_path).unlink(missing_ok=True)
     Path(pre_path).unlink(missing_ok=True)
     ocr_text = result.stdout.strip().replace("\n", " ")
-    assert "IMAGES_YES" in ocr_text, (
-        f"Center panel OCR '{ocr_text}' does not contain 'IMAGES_YES' — "
+    assert "IMAGES-YES" in ocr_text, (
+        f"Center panel OCR '{ocr_text}' does not contain 'IMAGES-YES' — "
         "contact sheet may be built from unprocessed images"
     )
 
