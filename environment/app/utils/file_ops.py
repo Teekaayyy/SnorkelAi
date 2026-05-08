@@ -16,4 +16,4 @@ def ensure_dirs(directories: list[Path]) -> None:
 
 def output_path(source: Path, destination_dir: Path) -> Path:
     """Derive destination path by placing source filename into destination_dir."""
-    return destination_dir / (source.stem + ".jpg")
+    return destination_dir / source.name
