@@ -5,7 +5,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     imagemagick \
     fonts-dejavu-core \
-    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/* \
     && sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true \
     && sed -i 's/<policy domain="resource" name="memory" value="[^"]*"\/>/<policy domain="resource" name="memory" value="512MiB"\/>/' /etc/ImageMagick-6/policy.xml || true

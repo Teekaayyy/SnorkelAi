@@ -16,12 +16,17 @@ logger = get_logger(__name__)
 def run_contact_sheet(images: list[Path], output_path: Path) -> None:
     """Combine all images into a contact sheet with CONTACT_SHEET_COLUMNS columns."""
     if not images:
-        raise ValueError("No images provided for contact sheet generation")
+        subprocess.run(
+            ["convert", "-size", "100x100", "xc:white", str(output_path)],
+            check=True,
+        )
+        logger.warning("No watermarked images found — contact sheet is blank")
+        return
 
     tile = f"{CONTACT_SHEET_COLUMNS}x"
 
     cmd = (
-        ["montage", str(output_path)]
+        ["montage"]
         + [str(img) for img in images]
         + [
             "-tile", tile,

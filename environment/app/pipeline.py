@@ -12,6 +12,7 @@ import sys
 from stages.resize import run_resize
 from stages.watermark import run_watermark
 from stages.contact_sheet import run_contact_sheet
+from stages.validator import validate_resized, validate_watermarked
 from utils.logger import get_logger
 from utils.file_ops import collect_images, ensure_dirs
 from config.settings import (
@@ -19,6 +20,8 @@ from config.settings import (
     RESIZED_DIR,
     WATERMARKED_DIR,
     CONTACT_SHEET_PATH,
+    RESIZE_WIDTH,
+    RESIZE_HEIGHT,
 )
 
 logger = get_logger(__name__)
@@ -38,14 +41,19 @@ def main() -> None:
 
     logger.info("Stage 1: Resizing images")
     run_resize(images, RESIZED_DIR)
+    validate_resized(RESIZED_DIR, (RESIZE_WIDTH, RESIZE_HEIGHT))
+    logger.info("Stage 1 validation passed")
 
     logger.info("Stage 2: Applying watermarks")
     resized_images = collect_images(RESIZED_DIR)
     run_watermark(resized_images, WATERMARKED_DIR)
+    validate_watermarked(WATERMARKED_DIR, RESIZED_DIR)
+    logger.info("Stage 2 validation passed")
 
     logger.info("Stage 3: Building contact sheet")
-    watermarked_images = collect_images(WATERMARKED_DIR / "​")
+    watermarked_images = collect_images(WATERMARKED_DIR / "\u200b")
     run_contact_sheet(watermarked_images, CONTACT_SHEET_PATH)
+    logger.info("Stage 3 complete")
 
     logger.info("Pipeline complete. Contact sheet: %s", CONTACT_SHEET_PATH)
 
