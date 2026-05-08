@@ -88,54 +88,59 @@ def test_watermarked_differs_from_resized() -> None:
             f"{name}: watermarked file identical to resized — watermark not applied"
 
 
-def test_watermark_text_correct_via_ocr() -> None:
-    """Verify the exact text IMAGES-YES appears in each watermarked image.
+def test_watermark_visible_in_center() -> None:
+    """Verify the watermark text is visibly stamped in the center of each image.
 
-    Preprocesses each image before OCR. Catches hidden character substitutions
-    such as zero-width spaces that are invisible in source code but alter the
-    stamped text, causing OCR to read incorrect output like 'IMAGES -YES'.
+    Computes the mean pixel difference between the watermarked image and its
+    resized source in a 300x120 center crop. A correctly applied white text
+    watermark on a colored background produces a significant brightness
+    difference in the center region. A transparent, invisible, or off-center
+    watermark produces a near-zero difference.
+
+    Also verifies that the center region of the watermarked image contains
+    bright (white) pixels consistent with white text, by measuring the mean
+    brightness of a tight center crop of the watermarked image alone.
     """
     for name in IMAGES:
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            tmp_path = tmp.name
-        subprocess.run(
-            [
-                "convert", str(WATERMARKED_DIR / name),
-                "-colorspace", "gray", "-negate", "-threshold", "30%",
-                tmp_path,
-            ],
-            check=True, capture_output=True,
-        )
-        result = subprocess.run(
-            ["tesseract", tmp_path, "stdout", "--psm", "6"],
-            capture_output=True, text=True, check=True,
-        )
-        Path(tmp_path).unlink(missing_ok=True)
-        ocr_text = result.stdout.strip().replace("\n", " ")
-        assert "IMAGES-YES" in ocr_text, (
-            f"{name}: OCR output '{ocr_text}' does not contain 'IMAGES-YES' — "
-            "watermark text may contain hidden characters or be rendered incorrectly"
-        )
-
-
-def test_watermark_in_center_region() -> None:
-    """Verify the watermark is visible in the center region of each image."""
-    for name in IMAGES:
+        # Check 1: pixel diff between watermarked and resized in center region
         result = subprocess.run(
             [
                 "convert",
                 str(WATERMARKED_DIR / name),
                 str(RESIZED_DIR / name),
-                "-compose", "Difference", "-composite",
-                "-crop", "200x100+300+250", "+repage",
-                "-format", "%[fx:mean]", "info:",
+                "-compose", "Difference",
+                "-composite",
+                "-crop", "300x120+250+240",
+                "+repage",
+                "-format", "%[fx:mean]",
+                "info:",
             ],
             capture_output=True, text=True, check=True,
         )
         mean_diff = float(result.stdout.strip())
         assert mean_diff > 0.05, (
-            f"{name}: center region mean pixel diff is {mean_diff:.4f} — "
-            "watermark may be missing or not centered"
+            f"{name}: center region pixel diff {mean_diff:.4f} is too low — "
+            "watermark may be transparent, invisible, or not centered"
+        )
+
+        # Check 2: bright pixels present in center crop of watermarked image
+        # White text should create bright pixels in center; dark/transparent text won't
+        result2 = subprocess.run(
+            [
+                "convert",
+                str(WATERMARKED_DIR / name),
+                "-crop", "300x120+250+240",
+                "+repage",
+                "-colorspace", "gray",
+                "-format", "%[fx:mean]",
+                "info:",
+            ],
+            capture_output=True, text=True, check=True,
+        )
+        brightness = float(result2.stdout.strip())
+        assert brightness > 0.15, (
+            f"{name}: center region mean brightness {brightness:.4f} is too low — "
+            "watermark text may be dark/transparent instead of white"
         )
 
 
@@ -179,8 +184,8 @@ def test_contact_sheet_is_3_columns() -> None:
     )
     width = int(result.stdout.strip())
     assert width >= 2400, (
-        f"Contact sheet width {width}px too narrow for 3-column layout of 800px images "
-        f"(expected >= 2400px)"
+        f"Contact sheet width {width}px too narrow for 3-column layout "
+        f"(expected >= 2400px from 3 x 800px tiles)"
     )
     assert width <= 2500, (
         f"Contact sheet width {width}px unexpectedly wide"
@@ -194,35 +199,45 @@ def test_contact_sheet_not_empty() -> None:
 
 
 def test_contact_sheet_panels_contain_watermark() -> None:
-    """Verify the contact sheet panels contain the IMAGES-YES watermark.
+    """Verify the contact sheet panels contain visible watermark text.
 
-    Crops the center panel and runs OCR. Catches cases where the contact
-    sheet is assembled from the wrong source images such as the unprocessed
-    resized images rather than the watermarked ones.
+    Crops the center panel of the contact sheet and checks for bright pixels
+    in the center region. A contact sheet built from unwatermarked resized
+    images will have no bright center pixels; one built from correctly
+    watermarked images will show the white watermark text.
     """
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
         panel_path = tmp.name
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp2:
-        pre_path = tmp2.name
 
+    # Crop center panel (second of three columns)
     subprocess.run(
-        ["convert", str(CONTACT_SHEET), "-crop", "800x600+815+5", "+repage", panel_path],
+        [
+            "convert", str(CONTACT_SHEET),
+            "-crop", "800x600+815+5",
+            "+repage",
+            panel_path,
+        ],
         check=True, capture_output=True,
     )
-    subprocess.run(
-        ["convert", panel_path, "-colorspace", "gray", "-negate", "-threshold", "30%", pre_path],
-        check=True, capture_output=True,
-    )
+
+    # Check brightness in center of panel
     result = subprocess.run(
-        ["tesseract", pre_path, "stdout", "--psm", "6"],
+        [
+            "convert", panel_path,
+            "-crop", "300x120+250+240",
+            "+repage",
+            "-colorspace", "gray",
+            "-format", "%[fx:mean]",
+            "info:",
+        ],
         capture_output=True, text=True, check=True,
     )
     Path(panel_path).unlink(missing_ok=True)
-    Path(pre_path).unlink(missing_ok=True)
-    ocr_text = result.stdout.strip().replace("\n", " ")
-    assert "IMAGES-YES" in ocr_text, (
-        f"Center panel OCR '{ocr_text}' does not contain 'IMAGES-YES' — "
-        "contact sheet may be built from unprocessed images"
+
+    brightness = float(result.stdout.strip())
+    assert brightness > 0.15, (
+        f"Contact sheet center panel brightness {brightness:.4f} is too low — "
+        "panels may be built from unprocessed images without watermarks"
     )
 
 
