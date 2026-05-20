@@ -2,12 +2,8 @@
 health.py
 =========
 Fault and safety monitor for the closed-loop system.
-
 Tracks rolling residuals and force errors over a 60-sample window.
-Issues warnings and emergency stops based on configurable thresholds.
-
-Health score:
-    score = clamp(1.0 − avg_residual − 0.1 × avg_force_error, 0.0, 1.0)
+Issues warnings and computes a normalised health score each timestep.
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -16,7 +12,7 @@ from typing import List
 
 @dataclass
 class HealthReport:
-    """Summary of system health for a single timestep."""
+    """Summary of system health at a single timestep."""
     score: float
     messages: List[str]
     emergency_stop: bool
@@ -35,7 +31,7 @@ class FaultMonitor:
         commanded_force: float,
         actual_force: float,
     ) -> HealthReport:
-        """Compute health metrics and return a HealthReport."""
+        """Compute health metrics and return a HealthReport for this timestep."""
         residual = sum((truth[i] - estimate[i]) ** 2 for i in range(4)) ** 0.5
         self.residual_window.append(residual)
         self.force_window.append(abs(commanded_force - actual_force))

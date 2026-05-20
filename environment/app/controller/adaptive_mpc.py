@@ -2,17 +2,8 @@
 adaptive_mpc.py
 ===============
 Sampling-based Adaptive Model Predictive Controller.
-
-At each step:
-    1. Generate candidate control sequences.
-    2. Roll out each candidate using the plant model.
-    3. Select the sequence with lowest cost.
-    4. Apply the first element, scaled by model confidence.
-    5. Update confidence from EKF innovation energy.
-
-Model confidence:
-    High confidence → full control output.
-    Low confidence  → reduced output (more cautious).
+Selects control actions by rolling out candidate sequences through the plant model.
+Confidence is updated from the EKF innovation energy each step.
 """
 from __future__ import annotations
 import math

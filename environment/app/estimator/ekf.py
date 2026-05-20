@@ -2,19 +2,7 @@
 ekf.py
 ======
 Extended Kalman Filter for cart-pole state estimation.
-
-Predict step:
-    x̂ = f(x̂, u)
-    P = F P Fᵀ + Q
-
-Update step (full-state measurement, H = I):
-    y = z − x̂
-    S = H P Hᵀ + R
-    K = P Hᵀ S⁻¹
-    x̂ = x̂ + K y
-    P = (I − K H) P
-
-Adaptive noise scaling inflates R when innovation energy is high.
+Implements predict and update steps with adaptive measurement noise scaling.
 """
 from __future__ import annotations
 from typing import List, Optional
@@ -46,7 +34,7 @@ class ExtendedKalmanFilter:
         self.innovation_energy: float = 0.0
 
     def predict(self, u: float, dt: float) -> None:
-        """Propagate state and covariance through the nonlinear plant model."""
+        """Propagate state and covariance forward through the plant model."""
         def f(local_state: List[float]) -> List[float]:
             return self.model.predict_step(local_state, u, dt)
 
@@ -56,7 +44,7 @@ class ExtendedKalmanFilter:
         self.P = mat_add(mat_mul(mat_mul(F, self.P), Ft), self.Q)
 
     def update(self, z: Optional[List[float]]) -> None:
-        """Incorporate a measurement; inflate P on dropout."""
+        """Incorporate a measurement into the state estimate."""
         if z is None:
             inflation = mat_diag([0.0005, 0.006, 0.0005, 0.006])
             self.P = mat_add(self.P, inflation)
@@ -72,7 +60,7 @@ class ExtendedKalmanFilter:
         self.x[2] = wrap_angle(self.x[2])
 
         I = mat_identity(4)
-        self.P = mat_mul(mat_sub(I, mat_mul(K, self.H)), self.P)
+        self.P = mat_mul(mat_sub(I, mat_mul(self.H, K)), self.P)
 
         self.innovation_energy = 0.96 * self.innovation_energy + 0.04 * sum(v * v for v in y)
         scale = 1.0 + self.cfg.adaptive_noise_gain * min(50.0, self.innovation_energy)

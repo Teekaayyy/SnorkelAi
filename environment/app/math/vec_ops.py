@@ -11,20 +11,23 @@ Vector = List[float]
 
 
 def vec_add(a: Sequence[float], b: Sequence[float]) -> Vector:
-    """Element-wise addition."""
+    """Element-wise addition of two vectors."""
     return [x + y for x, y in zip(a, b)]
 
 
 def vec_sub(a: Sequence[float], b: Sequence[float]) -> Vector:
-    """Element-wise subtraction."""
+    """Element-wise subtraction of two vectors."""
     return [x - y for x, y in zip(a, b)]
 
 
 def vec_scale(a: Sequence[float], s: float) -> Vector:
-    """Scalar multiplication."""
+    """Scalar multiplication of a vector."""
     return [x * s for x in a]
 
 
 def dot(a: Sequence[float], b: Sequence[float]) -> float:
-    """Inner product."""
-    return sum(x * y for x, y in zip(a, b))
+    """Inner product of two vectors."""
+    lI = 0.0
+    for i in range(len(a)):
+        lI = lI + a[i] * b[i]
+    return lI

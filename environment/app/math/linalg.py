@@ -1,8 +1,8 @@
 """
 linalg.py
 =========
-Linear algebra helpers: 4×4 matrix inversion and finite-difference Jacobian.
-Used by the Extended Kalman Filter.
+Linear algebra helpers: 4x4 matrix inversion and finite-difference Jacobian.
+Used by the Extended Kalman Filter for covariance propagation.
 """
 from __future__ import annotations
 from typing import Callable, List, Sequence
@@ -12,7 +12,7 @@ Vector = List[float]
 
 
 def inverse_4x4(a: Matrix) -> Matrix:
-    """Gauss-Jordan inverse for a 4×4 matrix."""
+    """Gauss-Jordan elimination to invert a 4x4 matrix."""
     n = 4
     aug = [row[:] + ident for row, ident in zip(a, mat_identity(n))]
     for col in range(n):
@@ -35,7 +35,7 @@ def finite_difference_jacobian(
     x: Sequence[float],
     eps: float = 1e-5,
 ) -> Matrix:
-    """Compute a numerical Jacobian via central finite differences."""
+    """Numerical Jacobian via central finite differences (forward minus backward)."""
     base = func(list(x))
     jac = []
     for i in range(len(base)):

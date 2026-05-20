@@ -2,14 +2,7 @@
 cost.py
 =======
 Cost function for the sampling-based MPC rollout.
-
-Stage cost (per step k):
-    J_k = xᵀ Q x + r u² + r_Δu Δu²
-
-Terminal cost:
-    J_T = xᵀ (terminal_scale × Q) x
-
-Safety penalty is added when |theta| exceeds safety_theta_limit_rad.
+Computes stage and terminal costs over a finite horizon.
 """
 from __future__ import annotations
 from typing import List, Sequence
@@ -22,7 +15,7 @@ def reference_error(
     ref_x: float,
     ref_theta: float,
 ) -> List[float]:
-    """Return the state error relative to the reference."""
+    """State error relative to the reference setpoint."""
     return [
         state[0] - ref_x,
         state[1],
@@ -40,7 +33,7 @@ def rollout_cost(
     cfg: ControllerConfig,
     predict_fn,
 ) -> float:
-    """Evaluate total cost of a control sequence starting from start_state."""
+    """Total cost of a control sequence from start_state over the horizon."""
     q = [cfg.q_x, cfg.q_xdot, cfg.q_theta, cfg.q_thetadot]
     terminal_q = [v * cfg.terminal_scale for v in q]
     state = list(start_state)
