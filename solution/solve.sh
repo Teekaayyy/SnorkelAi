@@ -329,8 +329,8 @@ class ExtendedKalmanFilter:
         self.x = vec_add(self.x, correction)
         self.x[2] = wrap_angle(self.x[2])
 
-        eye = mat_identity(4)
-        self.P = mat_mul(mat_sub(eye, mat_mul(K, self.H)), self.P)
+        I = mat_identity(4)
+        self.P = mat_mul(mat_sub(I, mat_mul(K, self.H)), self.P)
 
         self.innovation_energy = 0.96 * self.innovation_energy + 0.04 * sum(v * v for v in y)
         scale = 1.0 + self.cfg.adaptive_noise_gain * min(50.0, self.innovation_energy)
