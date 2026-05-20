@@ -4,14 +4,14 @@ version = "2.0"
 author_name = "anonymous"
 author_email = "anonymous"
 difficulty = "hard"
-category = "software-engineering"
-subcategories = ["tool_specific"]
+category = "debugging"
+subcategories = []
 number_of_milestones = 0
 codebase_size = "small"
-languages = ["python", "bash"]
-tags = ["imagemagick", "image-processing", "subprocess", "pipeline", "watermark"]
-expert_time_estimate_min = 60
-junior_time_estimate_min = 120
+languages = ["bash", "python"]
+tags = ["debugging", "control-systems", "kalman-filter", "mpc", "simulation"]
+expert_time_estimate_min = 90
+junior_time_estimate_min = 180
 
 [verifier]
 timeout_sec = 450.0
@@ -21,6 +21,6 @@ timeout_sec = 900.0
 
 [environment]
 build_timeout_sec = 600.0
-cpus = 1
+cpus = 2
 memory_mb = 4096
 storage_mb = 10240

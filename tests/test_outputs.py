@@ -1,250 +1,187 @@
-"""Tests for the imagemagick-pipeline-processor task."""
+"""Verifier tests for the adaptive MPC cart-pole debugging task."""
 
-import hashlib
-import subprocess
-import tempfile
-from pathlib import Path
+import sys
+sys.path.insert(0, "/service")
 
-IMAGES = ["image_1.png", "image_2.png", "image_3.png"]
-RESIZED_DIR = Path("/app/output/resized")
-WATERMARKED_DIR = Path("/app/output/watermarked")
-CONTACT_SHEET = Path("/app/output/contact_sheet.png")
+import pytest
 
-
-def test_pipeline_runs_cleanly() -> None:
-    """Wipe all outputs and run pipeline.py from scratch — must exit 0."""
-    subprocess.run(["rm", "-rf", "/app/output"], check=True)
-    result = subprocess.run(
-        ["python", "/app/pipeline.py"],
-        capture_output=True, text=True
-    )
-    assert result.returncode == 0, (
-        f"pipeline.py exited with code {result.returncode}.\n"
-        f"stdout: {result.stdout}\nstderr: {result.stderr}"
-    )
+from app.core.config import ChallengeConfig
+from app.utils.simulation import ClosedLoopSimulation
+from app.logger.telemetry import TelemetryLogger
 
 
-def test_resized_directory_exists() -> None:
-    """Verify that /app/output/resized/ was created."""
-    assert RESIZED_DIR.is_dir(), f"{RESIZED_DIR} does not exist"
+def run_sim() -> TelemetryLogger:
+    """Run a fresh closed-loop simulation with the default ChallengeConfig."""
+    cfg = ChallengeConfig()
+    sim = ClosedLoopSimulation(cfg)
+    return sim.run()
 
 
-def test_all_resized_files_present() -> None:
-    """Verify all 3 resized images exist with original filenames."""
-    for name in IMAGES:
-        assert (RESIZED_DIR / name).exists(), f"Missing resized file: {name}"
+@pytest.fixture(scope="module")
+def logger():
+    """Module-scoped simulation result fixture."""
+    return run_sim()
 
 
-def test_resized_dimensions_are_800x600() -> None:
-    """Verify every resized image is exactly 800x600 pixels."""
-    for name in IMAGES:
-        result = subprocess.run(
-            ["identify", "-format", "%wx%h", str(RESIZED_DIR / name)],
-            capture_output=True, text=True, check=True,
-        )
-        assert result.stdout.strip() == "800x600", \
-            f"{name}: expected 800x600, got {result.stdout.strip()}"
+@pytest.fixture(scope="module")
+def rows(logger):
+    """Module-scoped telemetry rows fixture."""
+    return logger.rows
 
 
-def test_resized_files_are_png() -> None:
-    """Verify every resized output file is PNG format."""
-    for name in IMAGES:
-        result = subprocess.run(
-            ["identify", "-format", "%m", str(RESIZED_DIR / name)],
-            capture_output=True, text=True, check=True,
-        )
-        assert result.stdout.strip() == "PNG", \
-            f"{name}: expected PNG, got {result.stdout.strip()}"
+class TestSimulationCompletes:
 
+    def test_produces_telemetry(self, rows):
+        """Verify the simulation produces at least one logged telemetry row."""
+        assert len(rows) > 0, "No telemetry rows produced"
 
-def test_watermarked_directory_exists() -> None:
-    """Verify that /app/output/watermarked/ was created."""
-    assert WATERMARKED_DIR.is_dir(), f"{WATERMARKED_DIR} does not exist"
-
-
-def test_all_watermarked_files_present() -> None:
-    """Verify all 3 watermarked images exist with original filenames."""
-    for name in IMAGES:
-        assert (WATERMARKED_DIR / name).exists(), f"Missing watermarked file: {name}"
-
-
-def test_watermarked_files_are_png() -> None:
-    """Verify every watermarked output file is PNG format."""
-    for name in IMAGES:
-        result = subprocess.run(
-            ["identify", "-format", "%m", str(WATERMARKED_DIR / name)],
-            capture_output=True, text=True, check=True,
-        )
-        assert result.stdout.strip() == "PNG", \
-            f"{name}: expected PNG, got {result.stdout.strip()}"
-
-
-def test_watermarked_differs_from_resized() -> None:
-    """Verify each watermarked image differs from its resized source."""
-    for name in IMAGES:
-        wm = hashlib.md5((WATERMARKED_DIR / name).read_bytes()).hexdigest()
-        rs = hashlib.md5((RESIZED_DIR / name).read_bytes()).hexdigest()
-        assert wm != rs, \
-            f"{name}: watermarked file identical to resized — watermark not applied"
-
-
-def test_watermark_visible_in_center() -> None:
-    """Verify the watermark text is visibly stamped in the center of each image.
-
-    Computes the mean pixel difference between the watermarked image and its
-    resized source in a 300x120 center crop. A correctly applied white text
-    watermark on a colored background produces a significant brightness
-    difference in the center region. A transparent, invisible, or off-center
-    watermark produces a near-zero difference.
-
-    Also verifies that the center region of the watermarked image contains
-    bright (white) pixels consistent with white text, by measuring the mean
-    brightness of a tight center crop of the watermarked image alone.
-    """
-    for name in IMAGES:
-        # Check 1: pixel diff between watermarked and resized in center region
-        result = subprocess.run(
-            [
-                "convert",
-                str(WATERMARKED_DIR / name),
-                str(RESIZED_DIR / name),
-                "-compose", "Difference",
-                "-composite",
-                "-crop", "300x120+250+240",
-                "+repage",
-                "-format", "%[fx:mean]",
-                "info:",
-            ],
-            capture_output=True, text=True, check=True,
-        )
-        mean_diff = float(result.stdout.strip())
-        assert mean_diff > 0.05, (
-            f"{name}: center region pixel diff {mean_diff:.4f} is too low — "
-            "watermark may be transparent, invisible, or not centered"
+    def test_runs_full_duration(self, rows):
+        """Verify the simulation logs at least 40 samples covering the full 10-second run."""
+        assert len(rows) >= 40, (
+            f"Simulation produced only {len(rows)} samples — "
+            "expected at least 40 for a full 10 s run at log_every=4"
         )
 
-        # Check 2: bright pixels present in center crop of watermarked image
-        # White text should create bright pixels in center; dark/transparent text won't
-        result2 = subprocess.run(
-            [
-                "convert",
-                str(WATERMARKED_DIR / name),
-                "-crop", "300x120+250+240",
-                "+repage",
-                "-colorspace", "gray",
-                "-format", "%[fx:mean]",
-                "info:",
-            ],
-            capture_output=True, text=True, check=True,
-        )
-        brightness = float(result2.stdout.strip())
-        assert brightness > 0.15, (
-            f"{name}: center region mean brightness {brightness:.4f} is too low — "
-            "watermark text may be dark/transparent instead of white"
+    def test_no_emergency_stop(self, rows):
+        """Verify the simulation completes all 500 steps without triggering an emergency stop."""
+        assert len(rows) == 41, (
+            f"Got {len(rows)} logged samples; expected 41. "
+            "Emergency stop triggered — system destabilised before 10 s."
         )
 
 
-def test_watermarked_dimensions_preserved() -> None:
-    """Verify watermarking did not alter the 800x600 dimensions."""
-    for name in IMAGES:
-        result = subprocess.run(
-            ["identify", "-format", "%wx%h", str(WATERMARKED_DIR / name)],
-            capture_output=True, text=True, check=True,
+class TestPoleAngleStability:
+
+    def test_max_abs_theta_within_bounds(self, rows):
+        """Verify the pole angle never exceeds 0.25 radians throughout the run."""
+        max_theta = max(abs(r.theta) for r in rows)
+        assert max_theta < 0.25, (
+            f"Max |theta| = {max_theta:.4f} rad exceeds 0.25 rad — "
+            "pole control is degraded"
         )
-        assert result.stdout.strip() == "800x600", \
-            f"{name}: dimensions changed after watermarking: {result.stdout.strip()}"
+
+    def test_theta_matches_golden(self, rows):
+        """Verify the peak pole angle matches the known-good reference value within tolerance."""
+        max_theta = max(abs(r.theta) for r in rows)
+        assert abs(max_theta - 0.160073) < 0.01, (
+            f"max |theta| = {max_theta:.6f} rad, expected ~0.160073 rad"
+        )
+
+    def test_initial_theta_correct(self, rows):
+        """Verify the initial pole angle is approximately 0.16 rad as configured."""
+        assert abs(rows[0].theta - 0.16) < 0.01, (
+            f"Initial theta = {rows[0].theta:.6f} rad, expected ~0.16 rad"
+        )
 
 
-def test_contact_sheet_exists() -> None:
-    """Verify the contact sheet was created at /app/output/contact_sheet.png."""
-    assert CONTACT_SHEET.exists(), "contact_sheet.png not found"
+class TestCartPosition:
+
+    def test_max_abs_x_within_rail(self, rows):
+        """Verify the cart never reaches the physical rail limit of 2.4 m."""
+        max_x = max(abs(r.x) for r in rows)
+        assert max_x < 2.4, (
+            f"Max |x| = {max_x:.4f} m — cart reached or exceeded the 2.4 m rail limit"
+        )
+
+    def test_x_matches_golden(self, rows):
+        """Verify the peak cart displacement matches the known-good reference value."""
+        max_x = max(abs(r.x) for r in rows)
+        assert abs(max_x - 2.345751) < 0.05, (
+            f"max |x| = {max_x:.6f} m, expected ~2.345751 m"
+        )
 
 
-def test_contact_sheet_is_png() -> None:
-    """Verify the contact sheet is PNG format."""
-    result = subprocess.run(
-        ["identify", "-format", "%m", str(CONTACT_SHEET)],
-        capture_output=True, text=True, check=True,
-    )
-    assert result.stdout.strip() == "PNG", \
-        f"Expected PNG, got {result.stdout.strip()}"
+class TestHealthScore:
+
+    def test_health_scores_non_negative(self, rows):
+        """Verify every health score is non-negative — the score must be clamped to [0, 1]."""
+        neg = [r for r in rows if r.health_score < 0.0]
+        assert len(neg) == 0, (
+            f"{len(neg)} rows have negative health score. "
+            "Health score must be clamped to [0, 1] at all times."
+        )
+
+    def test_health_scores_at_most_one(self, rows):
+        """Verify no health score exceeds 1.0."""
+        over = [r for r in rows if r.health_score > 1.0]
+        assert len(over) == 0, (
+            f"{len(over)} rows have health score > 1.0"
+        )
+
+    def test_mean_health_matches_golden(self, rows):
+        """Verify the mean health score across the run matches the known-good reference."""
+        mean_h = sum(r.health_score for r in rows) / len(rows)
+        assert abs(mean_h - 0.942424) < 0.05, (
+            f"Mean health = {mean_h:.6f}, expected ~0.942424"
+        )
+
+    def test_min_health_non_negative(self, rows):
+        """Verify the minimum health score across the run is non-negative."""
+        min_h = min(r.health_score for r in rows)
+        assert min_h >= 0.0, (
+            f"Minimum health score = {min_h:.6f} — score went negative"
+        )
 
 
-def test_contact_sheet_is_3_columns() -> None:
-    """Verify the contact sheet width confirms a 3-column layout.
+class TestWarningCount:
 
-    Three 800px-wide images with +5+5 geometry produce ~2410-2430px width.
-    Asserting >= 2400 rules out 1-column (~810px) and 2-column (~1620px) layouts.
-    An incorrect resize dimension also fails here: 3 x 600px tiles produce
-    ~1830px which is below the threshold.
-    """
-    result = subprocess.run(
-        ["identify", "-format", "%w", str(CONTACT_SHEET)],
-        capture_output=True, text=True, check=True,
-    )
-    width = int(result.stdout.strip())
-    assert width >= 2400, (
-        f"Contact sheet width {width}px too narrow for 3-column layout "
-        f"(expected >= 2400px from 3 x 800px tiles)"
-    )
-    assert width <= 2500, (
-        f"Contact sheet width {width}px unexpectedly wide"
-    )
+    def test_warning_samples_match_golden(self, rows):
+        """Verify the number of samples with active health warnings matches the reference count."""
+        warnings = sum(1 for r in rows if r.health_messages)
+        assert warnings == 3, (
+            f"warning_samples = {warnings}, expected 3. "
+            "Unexpected control degradation or false alarm activity detected."
+        )
 
 
-def test_contact_sheet_not_empty() -> None:
-    """Verify the contact sheet file is not suspiciously small."""
-    assert CONTACT_SHEET.stat().st_size > 10_000, \
-        "Contact sheet is suspiciously small"
+class TestDeterminism:
+
+    def test_same_config_same_trajectory(self):
+        """Verify two independent runs with the same config produce identical trajectories."""
+        r1 = run_sim().rows
+        r2 = run_sim().rows
+        assert len(r1) == len(r2), "Run lengths differ — simulation is non-deterministic"
+        assert abs(r1[0].theta - r2[0].theta) < 1e-10
+        assert abs(r1[-1].theta - r2[-1].theta) < 1e-10
+
+    def test_first_row_theta_deterministic(self):
+        """Verify the first logged theta value is identical across repeated runs."""
+        r1 = run_sim().rows[0].theta
+        r2 = run_sim().rows[0].theta
+        assert r1 == r2, f"First theta differs between runs: {r1} vs {r2}"
 
 
-def test_contact_sheet_panels_contain_watermark() -> None:
-    """Verify the contact sheet panels contain visible watermark text.
+class TestControlOutput:
 
-    Crops the center panel of the contact sheet and checks for bright pixels
-    in the center region. A contact sheet built from unwatermarked resized
-    images will have no bright center pixels; one built from correctly
-    watermarked images will show the white watermark text.
-    """
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        panel_path = tmp.name
+    def test_commanded_force_within_limits(self, rows):
+        """Verify the commanded force never exceeds the actuator saturation limit of 14 N."""
+        for r in rows:
+            assert abs(r.commanded_force) <= 14.0 + 1e-9, (
+                f"commanded_force = {r.commanded_force:.3f} N at t={r.t:.2f} s "
+                "exceeds the 14 N limit"
+            )
 
-    # Crop center panel (second of three columns)
-    subprocess.run(
-        [
-            "convert", str(CONTACT_SHEET),
-            "-crop", "800x600+815+5",
-            "+repage",
-            panel_path,
-        ],
-        check=True, capture_output=True,
-    )
-
-    # Check brightness in center of panel
-    result = subprocess.run(
-        [
-            "convert", panel_path,
-            "-crop", "300x120+250+240",
-            "+repage",
-            "-colorspace", "gray",
-            "-format", "%[fx:mean]",
-            "info:",
-        ],
-        capture_output=True, text=True, check=True,
-    )
-    Path(panel_path).unlink(missing_ok=True)
-
-    brightness = float(result.stdout.strip())
-    assert brightness > 0.15, (
-        f"Contact sheet center panel brightness {brightness:.4f} is too low — "
-        "panels may be built from unprocessed images without watermarks"
-    )
+    def test_actual_force_within_limits(self, rows):
+        """Verify the actual applied force never exceeds the actuator saturation limit of 14 N."""
+        for r in rows:
+            assert abs(r.actual_force) <= 14.0 + 1e-9, (
+                f"actual_force = {r.actual_force:.3f} N at t={r.t:.2f} s "
+                "exceeds the 14 N limit"
+            )
 
 
-def test_contact_sheet_differs_from_any_single_image() -> None:
-    """Verify the contact sheet is not identical to any individual watermarked image."""
-    sheet_hash = hashlib.md5(CONTACT_SHEET.read_bytes()).hexdigest()
-    for name in IMAGES:
-        img_hash = hashlib.md5((WATERMARKED_DIR / name).read_bytes()).hexdigest()
-        assert sheet_hash != img_hash, \
-            f"Contact sheet is identical to {name} — montage may not have run"
+class TestEKFInnovation:
+
+    def test_innovation_energy_non_negative(self, rows):
+        """Verify the EKF innovation energy is non-negative at every logged timestep."""
+        for r in rows:
+            assert r.innovation_energy >= 0.0, (
+                f"innovation_energy = {r.innovation_energy} at t={r.t:.2f} s is negative"
+            )
+
+    def test_innovation_energy_bounded(self, rows):
+        """Verify the EKF innovation energy stays bounded, indicating the filter has not diverged."""
+        max_ie = max(r.innovation_energy for r in rows)
+        assert max_ie < 10.0, (
+            f"Max innovation_energy = {max_ie:.4f} — EKF appears to be diverging"
+        )
